@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Candidate Profile Builder — Nursiecare</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================ Top bar ============================ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">N</span>
+    <div class="brand-text"><strong>Nursiecare</strong><span>Candidate Profile Builder</span></div>
+  </div>
+
+  <div class="current-candidate" aria-live="polite">
+    <span class="current-id mono" id="currentId">NCR-001</span>
+    <span class="current-name" id="currentName">New candidate</span>
+    <span class="pill" id="saveState">Not saved</span>
+  </div>
+
+  <nav class="actions" aria-label="Candidate actions">
+    <button type="button" class="btn btn-ghost" id="btnNew" title="Start a new candidate">New</button>
+    <button type="button" class="btn btn-ghost" id="btnLibrary" title="Open a saved candidate">Candidates <span class="count" id="libCount">0</span></button>
+    <button type="button" class="btn" id="btnPdf" title="Download this CV as a PDF file">Download PDF</button>
+    <button type="button" class="btn btn-ghost" id="btnPrint" title="Print (or choose “Save as PDF” in the print dialog)">Print</button>
+    <div class="menu">
+      <button type="button" class="btn" id="btnMore" aria-haspopup="true" aria-expanded="false">More <span aria-hidden="true">▾</span></button>
+      <div class="menu-list" id="moreMenu" hidden role="menu">
+        <button type="button" role="menuitem" data-cmd="html">Download CV as HTML</button>
+        <button type="button" role="menuitem" data-cmd="copy">Copy CV</button>
+        <hr>
+        <button type="button" role="menuitem" data-cmd="backup">Export backup (all candidates)</button>
+        <button type="button" role="menuitem" data-cmd="import">Import backup…</button>
+        <button type="button" role="menuitem" data-cmd="example">Load example candidate</button>
+        <hr>
+        <button type="button" role="menuitem" data-cmd="clear">Clear form</button>
+        <button type="button" role="menuitem" data-cmd="delete" class="danger">Delete this candidate</button>
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary" id="btnSave" title="Save (Ctrl+S)">Save</button>
+  </nav>
+</header>
+
+<div class="mobile-tabs" role="tablist">
+  <button type="button" data-view="edit" class="on">Edit</button>
+  <button type="button" data-view="preview">Preview CV</button>
+</div>
+
+<main class="workspace">
+
+  <!-- ============================ CV preview (left) ============================ -->
+  <section class="preview-pane" aria-label="CV preview">
+    <div class="preview-toolbar">
+      <span class="muted" id="pageCount">1 page</span>
+      <label class="toggle"><input type="checkbox" id="promptsToggle" checked> Show prompts for empty fields</label>
+      <label class="zoom">Zoom
+        <select id="zoomSel">
+          <option value="fit">Fit</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+        </select>
+      </label>
+    </div>
+    <div class="preview-scroll" id="previewScroll">
+      <div id="pages" class="cv-pages" title="Click any part of the CV to edit it"></div>
+    </div>
+  </section>
+
+  <!-- ============================ Editor (right) ============================ -->
+  <aside class="editor-pane" aria-label="Edit candidate information">
+    <div class="editor-head">
+      <div>
+        <div class="eyebrow">Edit candidate</div>
+        <div class="editor-title" id="editorTitle">New candidate</div>
+      </div>
+    </div>
+
+    <div class="editor-scroll" id="editor">
+
+      <div class="banner" id="storageWarning" hidden>
+        This browser is blocking local storage, so <strong>Save will not work</strong> here.
+        Open the file in Chrome, Edge or Firefox, or use <em>More ▸ Export backup</em>.
+      </div>
+
+      <div class="checks-box" id="checksBox">
+        <div class="checks-head"><span>Profile checks</span><span class="checks-count" id="checksCount"></span></div>
+        <ul id="checksList"></ul>
+      </div>
+
+      <details class="guide">
+        <summary>How to complete this profile</summary>
+        <ul>
+          <li>Part A becomes the shortlist card in the employer portal. Part B is the full profile the card opens.</li>
+          <li>Fill in Part B first, then write Part A from it. Everything on the card must also appear in Part B.</li>
+          <li>Card limits: Best suited to ≤ 60 characters · Recommendation one sentence ≤ 160 · Strengths and watch-outs ≤ 60 each.</li>
+          <li>Always complete all key facts, even when the answer is a gap (e.g. “0 yrs Australian aged care”). Every card needs at least one watch-out.</li>
+          <li>Mark facts: <b class="m-v">✔</b> Verified by Nursiecare · <b class="m-r">◐</b> Candidate-reported · <b class="m-p">○</b> Pending. Click a marker again to clear it.</li>
+          <li><strong>Do not add</strong> a photo, age, marital status, religion, health or children’s details.</li>
+        </ul>
+      </details>
+
+      <!-- ---------- Candidate details ---------- -->
+      <details class="ed-section" data-section="details" open>
+        <summary><span class="ed-chip">ID</span><span class="ed-title">Candidate details</span></summary>
+        <div class="ed-body">
+          <div class="grid-2">
+            <label class="field"><span class="label">First name</span><input type="text" data-bind="firstName" autocomplete="off"></label>
+            <label class="field"><span class="label">Last name</span><input type="text" data-bind="lastName" autocomplete="off"></label>
+          </div>
+          <p class="hint">The profile shows first name + last initial only (e.g. “Maria S.”).</p>
+          <div class="grid-2">
+            <label class="field"><span class="label">Candidate ID</span><input type="text" data-bind="id" class="mono" placeholder="NCR-000"></label>
+            <div class="field"><span class="label">Profile updated</span><output id="updatedOut" class="readonly">Not saved yet</output></div>
+          </div>
+          <label class="check"><input type="checkbox" data-bind="consentShared"> Candidate has consented to this profile being shared</label>
+        </div>
+      </details>
+
+      <div class="ed-group"><span>Part A</span> Shortlist card</div>
+
+      <!-- ---------- Key facts ---------- -->
+      <details class="ed-section" data-section="card">
+        <summary><span class="ed-chip">A</span><span class="ed-title">Key facts</span></summary>
+        <div class="ed-body">
+          <label class="field"><span class="label">Status badge</span>
+            <select data-bind="card.statusBadge">
+              <option value="">Choose…</option>
+              <option>Recommend interview</option>
+              <option>Future intake</option>
+            </select>
+          </label>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Location</span><div class="marker" data-bind="card.markers.location"></div></div>
+            <div class="grid-2">
+              <input type="text" data-bind="card.location" placeholder="City, Country or onshore location" aria-label="Location">
+              <input type="text" data-bind="card.openTo" placeholder="Open to: states / regions" aria-label="Open to">
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Best suited to</span><div class="marker" data-bind="card.markers.bestSuitedTo"></div></div>
+            <input type="text" data-bind="card.bestSuitedTo" data-limit="60" placeholder="Role + focus" aria-label="Best suited to">
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">AHPRA</span><div class="marker" data-bind="card.markers.ahpra"></div></div>
+            <input type="text" data-bind="card.ahpra" placeholder="General · no conditions / Application in progress" aria-label="AHPRA" list="ahpraOptions">
+            <datalist id="ahpraOptions">
+              <option value="General · no conditions"></option>
+              <option value="General · conditions"></option>
+              <option value="Application in progress"></option>
+              <option value="Not yet applied"></option>
+            </datalist>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Experience <em>years</em></span><div class="marker" data-bind="card.markers.experience"></div></div>
+            <div class="grid-3">
+              <label class="mini"><input type="number" min="0" step="0.5" data-bind="card.experience.rn"><span>RN</span></label>
+              <label class="mini"><input type="number" min="0" step="0.5" data-bind="card.experience.olderPersons"><span>Older persons</span></label>
+              <label class="mini"><input type="number" min="0" step="0.5" data-bind="card.experience.ausAgedCare"><span>Aust. aged care</span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Earliest start</span><div class="marker" data-bind="card.markers.earliestStart"></div></div>
+            <div class="grid-2">
+              <input type="text" data-bind="card.earliestStart" placeholder="Month YYYY or notice period" aria-label="Earliest start">
+              <input type="text" data-bind="card.subjectTo" placeholder="Subject to: visa / notice" aria-label="Subject to">
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Sponsorship</span><div class="marker" data-bind="card.markers.sponsorship"></div></div>
+            <div class="grid-2">
+              <select data-bind="card.sponsorship" aria-label="Sponsorship">
+                <option value="">Choose…</option>
+                <option>Required</option>
+                <option>Not required</option>
+              </select>
+              <input type="text" data-bind="card.sponsorshipStatus" placeholder="Assessment status" aria-label="Assessment status">
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><span class="label">Shifts</span><div class="marker" data-bind="card.markers.shifts"></div></div>
+            <input type="text" data-bind="card.shifts" placeholder="Which shifts; say clearly if no nights or weekends" aria-label="Shifts">
+          </div>
+        </div>
+      </details>
+
+      <!-- ---------- Recommendation, strengths, watch-outs ---------- -->
+      <details class="ed-section" data-section="card-summary">
+        <summary><span class="ed-chip">A</span><span class="ed-title">Recommendation, strengths &amp; watch-outs</span></summary>
+        <div class="ed-body">
+          <label class="field"><span class="label">Recommendation <em>one sentence</em></span>
+            <textarea rows="3" data-bind="card.recommendation" data-limit="160" placeholder="What they fit and the main support they need"></textarea>
+          </label>
+          <div class="field"><span class="label">Strengths <em>aim for 3</em></span>
+            <div data-list="card.strengths" data-kind="text" data-limit="60" data-item-label="Strength" data-add="Add strength"></div>
+          </div>
+          <div class="field"><span class="label">Watch-outs <em>at least 1</em></span>
+            <div data-list="card.watchouts" data-kind="text" data-limit="60" data-item-label="Watch-out" data-add="Add watch-out"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- ---------- Checks line ---------- -->
+      <details class="ed-section" data-section="checks">
+        <summary><span class="ed-chip">A</span><span class="ed-title">Checks line</span></summary>
+        <div class="ed-body">
+          <div class="check-rows">
+            <div class="label-row"><span class="label">AHPRA</span><div class="marker" data-bind="checks.ahpra"></div></div>
+            <div class="label-row">
+              <select data-bind="checks.englishTest" aria-label="English test" class="inline-select">
+                <option value="">English test…</option>
+                <option>OET</option><option>IELTS</option><option>PTE</option><option>TOEFL</option><option>English exempt</option>
+              </select>
+              <div class="marker" data-bind="checks.english"></div>
+            </div>
+            <div class="label-row"><span class="label">References</span>
+              <select data-bind="checks.references" aria-label="References received" class="inline-select narrow">
+                <option value="">x</option><option>0</option><option>1</option><option>2</option>
+              </select><span class="muted">/ 2</span>
+            </div>
+            <div class="label-row"><span class="label">Police check</span><div class="marker" data-bind="checks.police"></div></div>
+            <div class="label-row"><span class="label">Licence</span><div class="marker" data-bind="checks.licence"></div></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="ed-group"><span>Part B</span> Full profile</div>
+
+      <!-- ---------- 1. Recruiter assessment ---------- -->
+      <details class="ed-section" data-section="assessment">
+        <summary><span class="ed-chip">1</span><span class="ed-title">Recruiter assessment</span></summary>
+        <div class="ed-body">
+          <div class="field"><span class="label">Strengths <em>evidenced, with source</em></span>
+            <div data-list="assessment.strengths" data-kind="textarea" data-item-label="Strength" data-first-hint="Longer, evidenced version of strength 1, e.g. ‘confirmed by referee’" data-add="Add strength"></div>
+          </div>
+          <div class="field"><span class="label">Watch-outs and suggested support</span>
+            <div data-list="assessment.watchouts" data-kind="textarea" data-item-label="Watch-out + support" data-first-hint="Gap + suggested support, e.g. ‘No Australian aged care experience. Suggest 2–4 weeks of buddied shifts.’" data-add="Add watch-out"></div>
+          </div>
+          <div class="field"><span class="label">Suggested interview questions</span>
+            <div data-list="assessment.questions" data-kind="textarea" data-item-label="Question" data-first-hint="Scenario question tied to a watch-out" data-add="Add question"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- ---------- 2. Clinical experience ---------- -->
+      <details class="ed-section" data-section="clinical">
+        <summary><span class="ed-chip">2</span><span class="ed-title">Clinical experience</span></summary>
+        <div class="ed-body">
+          <label class="field"><span class="label">Current role</span>
+            <input type="text" data-bind="clinical.currentRole" placeholder="Title, unit, facility type and size, country">
+          </label>
+          <div class="grid-2 grid-narrow-first">
+            <label class="field"><span class="label">FT / PT</span>
+              <select data-bind="clinical.employmentType"><option value="">Choose…</option><option>FT</option><option>PT</option><option>Casual</option></select>
+            </label>
+            <label class="field"><span class="label">Practising status</span>
+              <input type="text" data-bind="clinical.practising" placeholder="Currently practising / last practised MM/YYYY" list="practisingOptions">
+              <datalist id="practisingOptions"><option value="Currently practising"></option></datalist>
+            </label>
+          </div>
+          <label class="field"><span class="label">Summary</span>
+            <textarea rows="3" data-bind="clinical.summary" placeholder="2–3 factual sentences: population, acuity, responsibility, leadership"></textarea>
+          </label>
+          <label class="field"><span class="label">Typical shift</span><input type="text" data-bind="clinical.typicalShift" placeholder="Ratio, acuity, staff supervised"></label>
+          <label class="field"><span class="label">Systems</span><input type="text" data-bind="clinical.systems" placeholder="Electronic / paper care plans; medication system"></label>
+        </div>
+      </details>
+
+      <!-- ---------- Employment history (optional) ---------- -->
+      <details class="ed-section" data-section="employment">
+        <summary><span class="ed-chip opt">+</span><span class="ed-title">Employment history <em>optional</em></span></summary>
+        <div class="ed-body">
+          <p class="hint">Appears on the CV as its own section once you add a role.</p>
+          <div data-list="employmentHistory" data-kind="employment" data-add="Add experience" data-empty="No previous roles added."></div>
+        </div>
+      </details>
+
+      <!-- ---------- 3. Capability highlights ---------- -->
+      <details class="ed-section" data-section="capabilities">
+        <summary><span class="ed-chip">3</span><span class="ed-title">Capability highlights</span></summary>
+        <div class="ed-body">
+          <p class="hint">Pick the 6 most relevant to aged care. Include at least one <em>Limited</em> row if it’s true: it shows honesty and helps the employer plan orientation.</p>
+          <div data-list="capabilities" data-kind="capability" data-add="Add capability"></div>
+        </div>
+      </details>
+
+      <!-- ---------- Qualifications & registrations (optional) ---------- -->
+      <details class="ed-section" data-section="qualifications">
+        <summary><span class="ed-chip opt">+</span><span class="ed-title">Qualifications &amp; registrations <em>optional</em></span></summary>
+        <div class="ed-body">
+          <p class="hint">Appears on the CV as its own section once you add an entry.</p>
+          <div class="field"><span class="label">Education / qualifications</span>
+            <div data-list="qualifications" data-kind="qualification" data-add="Add qualification" data-empty="No qualifications added."></div>
+          </div>
+          <div class="field"><span class="label">Certifications / registrations</span>
+            <div data-list="registrations" data-kind="registration" data-add="Add certification" data-empty="No registrations added."></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- ---------- 4. Verification ---------- -->
+      <details class="ed-section" data-section="verification">
+        <summary><span class="ed-chip">4</span><span class="ed-title">Verification</span></summary>
+        <div class="ed-body verify">
+          <div class="field">
+            <div class="label-row"><span class="label">AHPRA</span><div class="marker" data-bind="verification.ahpra.status"></div></div>
+            <input type="text" data-bind="verification.ahpra.note" placeholder="e.g. Checked on register 12/09/2026" aria-label="AHPRA verification note">
+          </div>
+          <div class="field">
+            <div class="label-row"><span class="label">Qualification</span><div class="marker" data-bind="verification.qualification.status"></div></div>
+            <input type="text" data-bind="verification.qualification.note" placeholder="What was sighted" aria-label="Qualification verification note">
+          </div>
+          <div class="field">
+            <div class="label-row"><span class="label">Employment</span><div class="marker" data-bind="verification.employment.status"></div></div>
+            <input type="text" data-bind="verification.employment.note" placeholder="Period verified / Partial" aria-label="Employment verification note">
+          </div>
+          <div class="field">
+            <div class="label-row"><span class="label">References</span><div class="marker" data-bind="verification.references.status"></div></div>
+            <input type="text" data-bind="verification.references.note" placeholder="x of 2: roles" aria-label="References note">
+          </div>
+          <div class="field">
+            <div class="label-row"><span class="label">Police check</span><div class="marker" data-bind="verification.police.status"></div></div>
+            <input type="text" data-bind="verification.police.note" placeholder="Status" aria-label="Police check note">
+          </div>
+          <div class="field">
+            <div class="label-row"><span class="label">Vaccinations</span><div class="marker" data-bind="verification.vaccinations.status"></div></div>
+            <input type="text" data-bind="verification.vaccinations.note" placeholder="Status; employer to confirm requirements" aria-label="Vaccinations note">
+          </div>
+        </div>
+      </details>
+
+      <!-- ---------- 5. Work preferences ---------- -->
+      <details class="ed-section" data-section="preferences">
+        <summary><span class="ed-chip">5</span><span class="ed-title">Work preferences</span></summary>
+        <div class="ed-body">
+          <div class="grid-2">
+            <label class="field"><span class="label">Role</span><input type="text" data-bind="preferences.role" placeholder="RN / Senior RN / Clinical Lead" list="roleOptions"></label>
+            <label class="field"><span class="label">Hours</span><input type="text" data-bind="preferences.hours" placeholder="FT / PT, hours"></label>
+          </div>
+          <datalist id="roleOptions"><option value="RN"></option><option value="Senior RN"></option><option value="Clinical Lead"></option></datalist>
+          <label class="field"><span class="label">Shifts</span><input type="text" data-bind="preferences.shifts" placeholder="Detail"></label>
+          <label class="field"><span class="label">Pay</span><input type="text" data-bind="preferences.pay" placeholder="Range / Award or EA rate"></label>
+        </div>
+      </details>
+
+      <!-- ---------- 6. Readiness and communication ---------- -->
+      <details class="ed-section" data-section="readiness">
+        <summary><span class="ed-chip">6</span><span class="ed-title">Readiness &amp; communication</span></summary>
+        <div class="ed-body">
+          <div class="grid-2">
+            <label class="field"><span class="label">Aged care prep</span>
+              <select data-bind="readiness.agedCarePrep">
+                <option value="">Modules completed…</option>
+                <option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+              </select>
+            </label>
+            <label class="field"><span class="label">Intro video</span>
+              <select data-bind="readiness.introVideo"><option value="">Choose…</option><option>Available</option><option>Not available</option></select>
+            </label>
+          </div>
+          <label class="field"><span class="label">English</span><input type="text" data-bind="readiness.english" placeholder="OET / IELTS result / Exempt"></label>
+          <label class="field"><span class="label">Our interview</span><input type="text" data-bind="readiness.interview" placeholder="DD/MM/YYYY, format, length"></label>
+          <label class="field"><span class="label">What we saw</span><textarea rows="2" data-bind="readiness.whatWeSaw" placeholder="1–2 observed behaviours, not ratings"></textarea></label>
+        </div>
+      </details>
+
+      <!-- ---------- 7. Relocation and visa ---------- -->
+      <details class="ed-section" data-section="relocation">
+        <summary><span class="ed-chip">7</span><span class="ed-title">Relocation &amp; visa</span></summary>
+        <div class="ed-body">
+          <div class="grid-2">
+            <label class="field"><span class="label">Relocating</span>
+              <select data-bind="relocation.relocating"><option value="">Choose…</option><option>Alone</option><option>With partner</option><option>With family</option></select>
+            </label>
+            <label class="field"><span class="label">Commitment sought</span><input type="text" data-bind="relocation.commitment" placeholder="e.g. 2-year commitment"></label>
+          </div>
+          <label class="field"><span class="label">Areas</span><input type="text" data-bind="relocation.areas" placeholder="Specific towns discussed"></label>
+          <label class="field"><span class="label">Support needed</span><input type="text" data-bind="relocation.supportNeeded" placeholder="Accommodation / transport / childcare / partner work / none"></label>
+          <label class="field"><span class="label">Driving</span><input type="text" data-bind="relocation.driving" placeholder="Licence status · drives regularly"></label>
+          <label class="field"><span class="label">Visa</span><textarea rows="2" data-bind="relocation.visa" placeholder="Onshore/offshore · current visa · pathway · agent assessment status"></textarea></label>
+          <label class="field"><span class="label">Mobilisation</span><input type="text" data-bind="relocation.mobilisation" placeholder="X–Y months from offer"></label>
+        </div>
+      </details>
+
+      <!-- ---------- 8. Nursiecare support ---------- -->
+      <details class="ed-section" data-section="support">
+        <summary><span class="ed-chip">8</span><span class="ed-title">Nursiecare support</span></summary>
+        <div class="ed-body">
+          <label class="field"><span class="label">Support included</span><textarea rows="2" data-bind="support.included"></textarea></label>
+          <div class="grid-3">
+            <label class="field"><span class="label">Recruiter</span><input type="text" data-bind="support.recruiterName" placeholder="Name"></label>
+            <label class="field"><span class="label">Email</span><input type="email" data-bind="support.recruiterEmail" placeholder="email"></label>
+            <label class="field"><span class="label">Phone</span><input type="tel" data-bind="support.recruiterPhone" placeholder="phone"></label>
+          </div>
+          <p class="hint">Recruiter details are remembered for the next new candidate.</p>
+        </div>
+      </details>
+
+      <div class="editor-foot">
+        <button type="button" class="btn btn-primary btn-block" onclick="document.getElementById('btnSave').click()">Save candidate</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- Off-screen area used to measure and paginate the CV -->
+<div id="measure" class="cv-measure" aria-hidden="true"></div>
+
+<!-- ============================ Candidate library ============================ -->
+<dialog id="library" class="library" aria-labelledby="libTitle">
+  <div class="lib-head">
+    <div>
+      <h2 id="libTitle">Saved candidates</h2>
+      <p class="muted" id="libMeta"></p>
+    </div>
+    <button type="button" class="icon-btn" id="libClose" aria-label="Close">✕</button>
+  </div>
+  <div class="lib-tools">
+    <input type="search" id="libSearch" placeholder="Search by name, ID, role, location or status…" aria-label="Search candidates">
+    <button type="button" class="btn btn-primary" id="libNew">New candidate</button>
+  </div>
+  <div class="lib-list" id="libList"></div>
+  <div class="lib-foot">
+    <span class="muted">Saved only in this browser on this computer. Export a backup regularly.</span>
+    <span>
+      <button type="button" class="btn btn-sm" id="libImport">Import…</button>
+      <button type="button" class="btn btn-sm" id="libBackup">Export backup</button>
+    </span>
+  </div>
+</dialog>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
